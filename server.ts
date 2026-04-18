@@ -77,7 +77,7 @@ async function startServer() {
       });
 
       console.log("Navigating to DTDC login...");
-      await page.goto("https://customer.dtdc.in", { waitUntil: "domcontentloaded", timeout: 60000 });
+      await page.goto("https://customer.dtdc.in", { waitUntil: "domcontentloaded", timeout: 99000 });
       
       console.log("Typing credentials...");
       await page.waitForSelector("#email");
@@ -104,7 +104,7 @@ async function startServer() {
       if (finalToken) {
         console.log("Successfully extracted token:", finalToken.substring(0, 10) + "...");
         cachedToken = finalToken;
-        tokenExpiry = Date.now() + 2 * 60 * 60 * 1000; // Cache for 2 hours (complete session)
+        tokenExpiry = Date.now() + 4 * 60 * 60 * 1000; // Cache for 4 hours (complete session)
         res.json({ token: finalToken });
       } else {
         throw new Error("Token not found in either network headers or localStorage after login.");
@@ -173,7 +173,51 @@ async function startServer() {
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
+    
+    // Start the self-ping loop in the background to prevent Render from going to sleep
+    startSelfPing();
   });
+}
+
+function startSelfPing() {
+  const TARGET_URL = "https://nac-llkv.onrender.com";
+  
+  async function pingLoop() {
+    console.log(`[Self-Ping] Activated to keep the server awake at ${TARGET_URL}`);
+    
+    // Initial delay so the server has time to fully boot before pinging itself
+    await new Promise(r => setTimeout(r, 10000));
+    
+    while (true) {
+      // 1. Random bursts of pings to mimic traffic
+      const numPings = Math.floor(Math.random() * 4) + 1; // 1 to 4 pings
+      console.log(`\n[Self-Ping] Firing ${numPings} background pings to prevent sleep...`);
+      
+      for (let i = 0; i < numPings; i++) {
+        try {
+          // Hits its own public address. Because this request goes out to the 
+          // internet and back through Render's proxy edge, Render thinks this is external traffic!
+          const res = await fetch(TARGET_URL); 
+          console.log(`[Self-Ping ${i+1}] Status: ${res.status}`);
+        } catch (e) {
+          console.error(`[Self-Ping ${i+1}] Error:`, e.message);
+        }
+        
+        // Small delay between burst pings
+        if (i < numPings - 1) {
+          await new Promise(r => setTimeout(r, Math.floor(Math.random() * 6000) + 2000));
+        }
+      }
+      
+      // 2. Wait a random amount of time between 6 and 13 minutes safely before the 15-minute inactivity limit
+      const delayMinutes = Math.floor(Math.random() * (13 - 6 + 1)) + 6;
+      console.log(`[Self-Ping] Sleeping for ${delayMinutes} minutes.`);
+      await new Promise(r => setTimeout(r, delayMinutes * 60 * 1000));
+    }
+  }
+  
+  // Initiate the async loop without blocking the main thread
+  pingLoop();
 }
 
 startServer();
