@@ -1,0 +1,6 @@
+{
+  "name": "Consignment Booking Portal",
+  "description": "A comprehensive ReactJS form portal to submit payload details and trigger consignment API with strict validation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
