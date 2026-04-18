@@ -58,7 +58,10 @@ async function startServer() {
         args: [
           "--no-sandbox",
           "--disable-setuid-sandbox",
-          "--disable-dev-shm-usage"
+          "--disable-dev-shm-usage",
+          "--disable-gpu",
+          "--single-process",
+          "--no-zygote"
         ]
       });
       const page = await browser.newPage();
@@ -74,7 +77,7 @@ async function startServer() {
       });
 
       console.log("Navigating to DTDC login...");
-      await page.goto("https://customer.dtdc.in", { waitUntil: "networkidle2" });
+      await page.goto("https://customer.dtdc.in", { waitUntil: "domcontentloaded", timeout: 60000 });
       
       console.log("Typing credentials...");
       await page.waitForSelector("#email");
